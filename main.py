@@ -31,7 +31,7 @@ def save_json_file(filepath, data):
         json.dump(data, file)
 
 data['shopping_list'] = load_json_file(FILE_PATH, default=[])
-data['categories'].update(load_json_file(CATEGORY_FILE), default={})
+data['categories'].update(load_json_file(CATEGORY_FILE, default={}))
 
 
 def categorize_items(items):
