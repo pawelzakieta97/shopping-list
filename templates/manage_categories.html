@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Categories</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .category-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px;
+            color: black;
+        }
+        .dairy { background-color: #ffcccb; }
+        .meat { background-color: #ff9999; }
+        .fruit-and-vegetables { background-color: #99ff99; }
+        .bakery { background-color: #ffdb99; }
+        .grains { background-color: #ccccff; }
+        .others { background-color: #e0e0e0; }
+    </style>
+</head>
+<body class="container mt-4">
+    <h1 class="mb-4">Manage Categories</h1>
+
+    <a href="{{ url_for('index') }}" class="btn btn-secondary mb-3">Back to Shopping List</a>
+
+    <h2>Add a New Category</h2>
+    <form action="{{ url_for('manage_categories') }}" method="POST" class="mb-4">
+        <input type="hidden" name="action" value="add_category">
+        <div class="input-group">
+            <input type="text" name="category" class="form-control" placeholder="Category name" required>
+            <button type="submit" class="btn btn-primary">Add Category</button>
+        </div>
+    </form>
+
+    <h2>Categories</h2>
+    {% for category in categories %}
+        <div class="card mb-3">
+            <div class="card-header category-title {{ category.replace(' ', '-').lower() }}">
+                <strong>{{ category }}</strong>
+                <form action="{{ url_for('manage_categories') }}" method="POST" class="d-inline">
+                    <input type="hidden" name="action" value="remove_category">
+                    <input type="hidden" name="category" value="{{ category }}">
+                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                </form>
+            </div>
+            <div class="card-body">
+                <h5>Add Item to {{ category }}</h5>
+                <form action="{{ url_for('manage_categories') }}" method="POST" class="mb-3 d-flex">
+                    <input type="hidden" name="action" value="add_item">
+                    <input type="hidden" name="category" value="{{ category }}">
+                    <input type="text" name="item" class="form-control me-2" placeholder="Item name" required>
+                    <button type="submit" class="btn btn-success">Add</button>
+                </form>
+
+                <h5>Items in {{ category }}</h5>
+                <ul class="list-group">
+                    {% for item, cat in category_map.items() %}
+                        {% if cat == category %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ item }}
+                                <form action="{{ url_for('manage_categories') }}" method="POST">
+                                    <input type="hidden" name="action" value="remove_item">
+                                    <input type="hidden" name="item" value="{{ item }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                                </form>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endfor %}
+</body>
+</html>

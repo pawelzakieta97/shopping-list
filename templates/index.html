@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .category-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 10px;
+            color: black;
+        }
+        .dairy { background-color: #ffcccb; }
+        .meat { background-color: #ff9999; }
+        .fruit-and-vegetables { background-color: #99ff99; }
+        .bakery { background-color: #ffdb99; }
+        .grains { background-color: #ccccff; }
+        .others { background-color: #e0e0e0; }
+    </style>
+</head>
+<body class="container mt-4">
+    <h1 class="mb-4">Shopping List</h1>
+
+    <button id="select-all" class="btn btn-info mb-3">Select All</button>
+
+    <form action="{{ url_for('add_item') }}" method="POST" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="item" class="form-control" placeholder="Enter item" required>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+
+<form action="{{ url_for('remove_items') }}" method="POST">
+    {% for category, c_items in categorized_items.items() %}
+        <div class="card mb-3">
+            <div class="card-header category-title {{ category.replace(' ', '-').lower() }}">
+                {{ category }}
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for item in c_items %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <input type="checkbox" name="items" value="{{ item }}" class="item-checkbox">
+                            {{ item }}
+                        </div>
+                        {% if category == 'others' %}
+                            <div class="d-flex">
+                                <input type="hidden" name="item" value="{{ item }}">
+                                <select name="category" class="form-select me-2 category-select" data-item="{{ item }}">
+                                    {% for cat in available_categories %}
+                                        <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                    <option value="new">+ Add New Category</option>
+                                </select>
+                                <input type="text" class="form-control me-2 new-category-input d-none" placeholder="Enter new category">
+                                <button type="button" class="btn btn-sm btn-success save-category" data-item="{{ item }}">Save</button>
+                            </div>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-danger mt-3">Remove Checked Items</button>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+    document.getElementById("select-all").addEventListener("click", function() {
+        let checkboxes = document.querySelectorAll(".item-checkbox");
+        let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        checkboxes.forEach(checkbox => checkbox.checked = !allChecked);
+    });
+
+    document.querySelectorAll(".category-select").forEach(select => {
+        select.addEventListener("change", function() {
+            let newCategoryInput = this.nextElementSibling;
+            if (this.value === "new") {
+                newCategoryInput.classList.remove("d-none");
+                newCategoryInput.focus();
+            } else {
+                newCategoryInput.classList.add("d-none");
+            }
+        });
+    });
+
+    document.querySelectorAll(".save-category").forEach(button => {
+        button.addEventListener("click", function() {
+            let item = this.getAttribute("data-item");
+            let select = this.previousElementSibling.previousElementSibling;
+            let newCategoryInput = this.previousElementSibling;
+            let category = select.value;
+
+            if (category === "new") {
+                category = newCategoryInput.value.trim();
+                if (!category) {
+                    alert("Please enter a new category.");
+                    return;
+                }
+            }
+
+            fetch("{{ url_for('update_category') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `item=${encodeURIComponent(item)}&category=${encodeURIComponent(category)}`
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();  // Reload the page after successful update
+                } else {
+                    alert("Failed to update category.");
+                }
+            }).catch(error => {
+                console.error("Error:", error);
+            });
+        });
+    });
+});
+</script>
+
+
+    <!-- Move "Manage Categories" button to the bottom -->
+    <div class="text-center mt-4">
+        <a href="{{ url_for('manage_categories') }}" class="btn btn-secondary">Manage Categories</a>
+    </div>
+
+</body>
+</html>
