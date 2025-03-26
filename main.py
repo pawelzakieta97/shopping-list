@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, render_template, request, redirect, url_for
 import json
 
@@ -14,20 +16,22 @@ data = {'shopping_list': [],
             'rice': 'grains', 'pasta': 'grains', 'oats': 'grains'
 }}
 
-def load_json_file(filepath):
+def load_json_file(filepath, default=None):
+    if default is None:
+        default = {}
     try:
         with open(filepath, 'r') as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+        return default
 
 
 def save_json_file(filepath, data):
     with open(filepath, 'w') as file:
         json.dump(data, file)
 
-data['shopping_list'] = load_json_file(FILE_PATH)
-data['categories'].update(load_json_file(CATEGORY_FILE))
+data['shopping_list'] = load_json_file(FILE_PATH, default=[])
+data['categories'].update(load_json_file(CATEGORY_FILE), default={})
 
 
 def categorize_items(items):
