@@ -1,11 +1,27 @@
 import os
+from collections import namedtuple
 
 from flask import Flask, render_template, request, redirect, url_for
 import json
+import redis
+
+STORAGE = 'redis'
 
 app = Flask(__name__)
 FILE_PATH = 'shopping_list.json'
 CATEGORY_FILE = 'categories.json'
+
+REDIS_HOST = os.getenv('REDIS_HOST')
+REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
+
+redis_client = redis.StrictRedis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    password=REDIS_PASSWORD,
+    # decode_responses=True,
+  ssl=True
+)
 
 data = {'shopping_list': [],
         'categories': {
@@ -30,9 +46,39 @@ def save_json_file(filepath, data):
     with open(filepath, 'w') as file:
         json.dump(data, file)
 
-data['shopping_list'] = load_json_file(FILE_PATH, default=[])
-data['categories'].update(load_json_file(CATEGORY_FILE, default={}))
+def load_shopping_list(data: dict):
+    if STORAGE == 'json':
+        data['shopping_list'] = load_json_file(FILE_PATH, default=[])
+    elif STORAGE == 'redis':
+        shopping_list = redis_client.get('shopping_list')
+        if shopping_list:
+            data['shopping_list'] = json.loads(shopping_list)
+        else:
+            data['shopping_list'] = []
 
+def load_categories(data: dict):
+    if STORAGE == 'json':
+        data['categories'].update(load_json_file(CATEGORY_FILE, default={}))
+    elif STORAGE == 'redis':
+        categories = redis_client.get('categories')
+        if categories:
+            data['categories'].update(json.loads(categories))
+
+def store_shopping_list(data: dict):
+
+    if STORAGE == 'json':
+        save_json_file(FILE_PATH, data['shopping_list'])
+    elif STORAGE == 'redis':
+        redis_client.set('shopping_list', json.dumps(data['shopping_list']))
+
+def store_categories(data: dict):
+    if STORAGE == 'json':
+        save_json_file(CATEGORY_FILE, data['categories'])
+    elif STORAGE == 'redis':
+        redis_client.set('categories', json.dumps(data['categories']))
+        
+load_categories(data)
+load_shopping_list(data)
 
 def categorize_items(items):
     categorized = {}
@@ -64,7 +110,8 @@ def add_item():
 def remove_items():
     checked_items = request.form.getlist('items')
     data['shopping_list'] = [item for item in data['shopping_list'] if item not in checked_items]
-    save_json_file(FILE_PATH, data['shopping_list'])
+    # save_json_file(FILE_PATH, data['shopping_list'])
+    store_shopping_list(data)
     return redirect(url_for('index'))
 
 
@@ -74,7 +121,8 @@ def update_category():
     category = request.form.get('category')
     if item and category:
         data['categories'][item] = category
-        save_json_file(CATEGORY_FILE, data['categories'])
+        store_categories(data)
+        # save_json_file(CATEGORY_FILE, data['categories'])
     return redirect(url_for('index'))
 
 
@@ -95,7 +143,8 @@ def manage_categories():
         elif action == 'remove_item' and item:
             data['categories'].pop(item, None)
 
-        save_json_file(CATEGORY_FILE, data['categories'])
+        # save_json_file(CATEGORY_FILE, data['categories'])
+        store_categories(data)
 
     return render_template('manage_categories.html',
                            categories=set(data['categories'].values()), category_map=data['categories'])
