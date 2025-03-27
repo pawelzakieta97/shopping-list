@@ -102,7 +102,8 @@ def add_item():
     item = request.form.get('item')
     if item:
         data['shopping_list'].append(item)
-        save_json_file(FILE_PATH, data['shopping_list'])
+        # save_json_file(FILE_PATH, data['shopping_list'])
+        store_shopping_list(data)
     return redirect(url_for('index'))
 
 
